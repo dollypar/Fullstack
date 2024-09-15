@@ -1,0 +1,121 @@
+.checkout-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.checkout-page h1,
+.checkout-page h2 {
+  margin-bottom: 20px;
+  font-size: 2rem;
+  color: #343a40;
+}
+
+.checkout-page form,
+.payment-methods,
+.payment-form,
+.order-confirmation {
+  background-color: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 500px;
+  margin-bottom: 20px;
+}
+
+.checkout-page form div,
+.payment-form div {
+  margin-bottom: 15px;
+}
+
+.checkout-page label {
+  display: block;
+  font-size: 1rem;
+  color: #495057;
+  margin-bottom: 8px;
+}
+
+.checkout-page input {
+  width: 100%;
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+}
+
+.checkout-page input:focus {
+  border-color: #80bdff;
+  outline: none;
+}
+
+.checkout-page button {
+  width: 100%;
+  padding: 12px;
+  background-color: #28a745;
+  color: white;
+  font-size: 1.2rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 10px;
+}
+
+.checkout-page button:hover {
+  background-color: #218838;
+}
+
+/* Error message for payment validation */
+.error-message {
+  color: #dc3545;
+  font-size: 0.9rem;
+  margin-top: -10px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+/* Buttons for Payment Methods */
+.payment-methods button {
+  width: 48%;
+  margin: 0 1%;
+  padding: 12px;
+  font-size: 1.1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.payment-methods button:first-child {
+  background-color: #007bff;
+  color: white;
+}
+
+.payment-methods button:last-child {
+  background-color: #ffc107;
+  color: black;
+}
+
+.payment-methods button:hover {
+  opacity: 0.9;
+}
+
+/* Success message */
+.order-confirmation h2 {
+  color: #28a745;
+  font-size: 1.8rem;
+}
+
+/* Add some spacing for the page sections */
+.checkout-page .payment-methods,
+.checkout-page .payment-form,
+.checkout-page .order-confirmation {
+  margin-top: 20px;
+}
+
