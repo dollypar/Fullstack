@@ -11,19 +11,22 @@ app.use(express.json());
 
 // Configure CORS to accept requests only from your frontend URL
 const corsOptions = {
-  origin: 'https://fullstackfrontend-1.onrender.com/mens', // Your frontend URL
+  origin: 'https://fullstackfrontend-1.onrender.com', // Your frontend URL
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
 
 // Database Connection With MongoDB
-mongoose.connect("mongodb+srv://MajorProject:RuhabDolly@cluster0.ugsi8.mongodb.net/e-commerce");
+mongoose.connect("mongodb+srv://MajorProject:RuhabDolly@cluster0.ugsi8.mongodb.net/e-commerce", {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+});
 
-// Image Storage Engine 
+// Image Storage Engine
 const storage = multer.diskStorage({
   destination: './upload/images',
   filename: (req, file, cb) => {
-    return cb(null, `${file.fieldname}_${Date.now()}${path.extname(file.originalname)}`)
+    return cb(null, `${file.fieldname}_${Date.now()}${path.extname(file.originalname)}`);
   }
 });
 const upload = multer({ storage: storage });
@@ -42,14 +45,14 @@ app.use('/images', express.static('upload/images'));
 const fetchuser = async (req, res, next) => {
   const token = req.header("auth-token");
   if (!token) {
-    res.status(401).send({ errors: "Please authenticate using a valid token" });
+    return res.status(401).send({ errors: "Please authenticate using a valid token" });
   }
   try {
     const data = jwt.verify(token, "secret_ecom");
     req.user = data.user;
     next();
   } catch (error) {
-    res.status(401).send({ errors: "Please authenticate using a valid token" });
+    return res.status(401).send({ errors: "Please authenticate using a valid token" });
   }
 };
 
@@ -82,139 +85,144 @@ app.get("/", (req, res) => {
 
 // Login Route
 app.post('/login', async (req, res) => {
-  let success = false;
-  let user = await Users.findOne({ email: req.body.email });
-  if (user) {
-    const passCompare = req.body.password === user.password;
-    if (passCompare) {
-      const data = {
-        user: {
-          id: user.id
-        }
-      }
-      success = true;
-      const token = jwt.sign(data, 'secret_ecom');
-      res.json({ success, token });
-    } else {
-      return res.status(400).json({ success: success, errors: "Please try with correct email/password" });
-    }
+  const { email, password } = req.body;
+  let user = await Users.findOne({ email });
+  if (user && user.password === password) {
+    const data = { user: { id: user._id } };
+    const token = jwt.sign(data, 'secret_ecom');
+    res.json({ success: true, token });
   } else {
-    return res.status(400).json({ success: success, errors: "Please try with correct email/password" });
+    res.status(400).json({ success: false, errors: "Invalid email or password" });
   }
 });
 
 // Signup Route
 app.post('/signup', async (req, res) => {
-  let success = false;
-  let check = await Users.findOne({ email: req.body.email });
-  if (check) {
-    return res.status(400).json({ success: success, errors: "Existing user found with this email" });
+  const { username, email, password } = req.body;
+  if (await Users.findOne({ email })) {
+    return res.status(400).json({ success: false, errors: "User already exists with this email" });
   }
-  let cart = {};
-  for (let i = 0; i < 300; i++) {
-    cart[i] = 0;
-  }
-  const user = new Users({
-    name: req.body.username,
-    email: req.body.email,
-    password: req.body.password,
-    cartData: cart,
-  });
+  const cart = Array(300).fill(0);
+  const user = new Users({ name: username, email, password, cartData: cart });
   await user.save();
-  const data = {
-    user: {
-      id: user.id
-    }
-  }
-  const token = jwt.sign(data, 'secret_ecom');
-  success = true;
-  res.json({ success, token });
+  const token = jwt.sign({ user: { id: user._id } }, 'secret_ecom');
+  res.json({ success: true, token });
 });
 
 // Get All Products
 app.get("/allproducts", async (req, res) => {
-  let products = await Product.find({});
-  res.send(products);
+  try {
+    const products = await Product.find({});
+    res.json(products);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch products" });
+  }
 });
 
 // Get New Collections
 app.get("/newcollections", async (req, res) => {
-  let products = await Product.find({});
-  let arr = products.slice(0).slice(-8);
-  res.send(arr);
+  try {
+    const products = await Product.find({});
+    const newCollections = products.slice(-8);
+    res.json(newCollections);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch new collections" });
+  }
 });
 
 // Get Popular Women's Products
 app.get("/popularinwomen", async (req, res) => {
-  let products = await Product.find({ category: "women" });
-  let arr = products.splice(0, 4);
-  res.send(arr);
+  try {
+    const products = await Product.find({ category: "women" });
+    const popularProducts = products.slice(0, 4);
+    res.json(popularProducts);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch popular women's products" });
+  }
 });
 
 // Get Related Products
 app.post("/relatedproducts", async (req, res) => {
   const { category } = req.body;
-  const products = await Product.find({ category });
-  const arr = products.slice(0, 4);
-  res.send(arr);
+  try {
+    const products = await Product.find({ category });
+    const relatedProducts = products.slice(0, 4);
+    res.json(relatedProducts);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch related products" });
+  }
 });
 
 // Add to Cart
 app.post('/addtocart', fetchuser, async (req, res) => {
-  let userData = await Users.findOne({ _id: req.user.id });
-  userData.cartData[req.body.itemId] += 1;
-  await Users.findOneAndUpdate({ _id: req.user.id }, { cartData: userData.cartData });
-  res.send("Added");
+  const { itemId } = req.body;
+  try {
+    const userData = await Users.findOne({ _id: req.user.id });
+    userData.cartData[itemId] = (userData.cartData[itemId] || 0) + 1;
+    await Users.findOneAndUpdate({ _id: req.user.id }, { cartData: userData.cartData });
+    res.send("Added");
+  } catch (err) {
+    res.status(500).json({ error: "Failed to add item to cart" });
+  }
 });
 
 // Remove from Cart
 app.post('/removefromcart', fetchuser, async (req, res) => {
-  let userData = await Users.findOne({ _id: req.user.id });
-  if (userData.cartData[req.body.itemId] != 0) {
-    userData.cartData[req.body.itemId] -= 1;
+  const { itemId } = req.body;
+  try {
+    const userData = await Users.findOne({ _id: req.user.id });
+    if (userData.cartData[itemId] > 0) {
+      userData.cartData[itemId] -= 1;
+      await Users.findOneAndUpdate({ _id: req.user.id }, { cartData: userData.cartData });
+    }
+    res.send("Removed");
+  } catch (err) {
+    res.status(500).json({ error: "Failed to remove item from cart" });
   }
-  await Users.findOneAndUpdate({ _id: req.user.id }, { cartData: userData.cartData });
-  res.send("Removed");
 });
 
 // Get Cart Data
 app.post('/getcart', fetchuser, async (req, res) => {
-  let userData = await Users.findOne({ _id: req.user.id });
-  res.json(userData.cartData);
+  try {
+    const userData = await Users.findOne({ _id: req.user.id });
+    res.json(userData.cartData);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to get cart data" });
+  }
 });
 
 // Add Product (Admin)
 app.post("/addproduct", async (req, res) => {
-  let products = await Product.find({});
-  let id;
-  if (products.length > 0) {
-    let last_product_array = products.slice(-1);
-    let last_product = last_product_array[0];
-    id = last_product.id + 1;
-  } else {
-    id = 1;
+  try {
+    const products = await Product.find({});
+    const id = products.length > 0 ? products[products.length - 1].id + 1 : 1;
+    const product = new Product({
+      id,
+      name: req.body.name,
+      description: req.body.description,
+      image: req.body.image,
+      category: req.body.category,
+      new_price: req.body.new_price,
+      old_price: req.body.old_price,
+    });
+    await product.save();
+    res.json({ success: true, name: req.body.name });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to add product" });
   }
-  const product = new Product({
-    id: id,
-    name: req.body.name,
-    description: req.body.description,
-    image: req.body.image,
-    category: req.body.category,
-    new_price: req.body.new_price,
-    old_price: req.body.old_price,
-  });
-  await product.save();
-  res.json({ success: true, name: req.body.name });
 });
 
 // Remove Product (Admin)
 app.post("/removeproduct", async (req, res) => {
-  await Product.findOneAndDelete({ id: req.body.id });
-  res.json({ success: true, name: req.body.name });
+  try {
+    await Product.findOneAndDelete({ id: req.body.id });
+    res.json({ success: true, name: req.body.name });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to remove product" });
+  }
 });
 
 // Start Express Server
-app.listen(port, (error) => {
-  if (!error) console.log("Server Running on port " + port);
-  else console.log("Error : ", error);
+app.listen(port, () => {
+  console.log("Server Running on port " + port);
 });
